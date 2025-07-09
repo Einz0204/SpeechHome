@@ -11,7 +11,7 @@ from scipy.io.wavfile import write
 
 # === 設定參數 ===
 fs = 16000
-duration = 1.5  # 錄音秒數
+duration = 3  # 錄音秒數
 record_file = 'raw_record.wav'
 trimmed_file = 'trimmed_record.wav'
 model_path = os.path.join('classifier', 'cnn_model.h5')
@@ -30,7 +30,7 @@ def record_audio():
     print("✅ 錄音完成")
 
 # === 去除靜音區，裁剪語音長度 ===
-def trim_speech(filename, target_duration=1.0):
+def trim_speech(filename, target_duration=1.5):
     y, sr = librosa.load(filename, sr=fs)
     intervals = librosa.effects.split(y, top_db=20)  # 靜音分段
     if len(intervals) == 0:
