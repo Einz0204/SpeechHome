@@ -1,0 +1,4 @@
+Noise
+UNKNOWN
+開燈
+關燈
