@@ -1,4 +1,5 @@
 Noise
 UNKNOWN
+啟動
 開燈
 關燈
