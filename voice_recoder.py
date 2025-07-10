@@ -39,7 +39,7 @@ def record_loop():
             clips = trim_speech(y, fs, target_duration=clip_duration)
             print(f"🎧 偵測到 {len(clips)} 段語音")
             for clip in clips:
-                wav_path = os.path.join(output_folder, f"ENoff-{idx:03d}.wav")
+                wav_path = os.path.join(output_folder, f"loan-{idx:03d}.wav")
                 wavfile.write(wav_path, fs, (clip * 32767).astype(np.int16))
                 print(f"✅ 儲存 {wav_path}")
                 idx += 1
