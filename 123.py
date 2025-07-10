@@ -6,7 +6,7 @@ import random
 
 # === 超參數 ===
 SAMPLE_RATE = 16000
-AUG_PER_SAMPLE = 2  # 每種方式幾次
+AUG_PER_SAMPLE = 2  # 每種方式做幾次
 
 # === 資料夾 ===
 DATA_DIR = "sound1"
@@ -14,12 +14,13 @@ AUGMENTED_DIR = "augmented_sound"
 os.makedirs(AUGMENTED_DIR, exist_ok=True)
 
 # === 增強函數 ===
-def augment_and_save(y, sr, save_path, aug_type, idx):
+def augment_and_save(y, sr, base_filename, save_dir, aug_type, idx):
     if aug_type == 'pitch':
         y_aug = librosa.effects.pitch_shift(y, sr=sr, n_steps=random.uniform(-2, 2))
     elif aug_type == 'stretch':
         rate = random.uniform(0.9, 1.1)
         y_aug = librosa.effects.time_stretch(y, rate=rate)
+        # 裁切或補零到 1 秒（sr 點）
         if len(y_aug) > sr:
             y_aug = y_aug[:sr]
         else:
@@ -27,14 +28,15 @@ def augment_and_save(y, sr, save_path, aug_type, idx):
     elif aug_type == 'noise':
         y_aug = y + np.random.normal(0, 0.0005, len(y))
     else:
-        return  # invalid type
+        return
 
-    aug_filename = f"{os.path.splitext(os.path.basename(save_path))[0]}_{aug_type}{idx}.wav"
-    aug_path = os.path.join(os.path.dirname(save_path), aug_filename)
+    # 統一儲存為 wav
+    aug_filename = f"{os.path.splitext(base_filename)[0]}_{aug_type}{idx}.wav"
+    aug_path = os.path.join(save_dir, aug_filename)
     sf.write(aug_path, y_aug, sr)
     print(f"✅ Saved: {aug_path}")
 
-# === 對資料夾內所有 wav 複雜化 ===
+# === 對資料夾內所有檔案進行增強 ===
 for label in os.listdir(DATA_DIR):
     label_dir = os.path.join(DATA_DIR, label)
     if not os.path.isdir(label_dir):
@@ -44,24 +46,27 @@ for label in os.listdir(DATA_DIR):
     os.makedirs(output_label_dir, exist_ok=True)
 
     for file in os.listdir(label_dir):
-        if not file.endswith(".wav"):
+        file_path = os.path.join(label_dir, file)
+        if not os.path.isfile(file_path):
             continue
 
-        input_path = os.path.join(label_dir, file)
+        # 嘗試讀檔，librosa.load 會自動用 soundfile 或 audioread
         try:
-            y, sr = librosa.load(input_path, sr=SAMPLE_RATE)
-            output_path = os.path.join(output_label_dir, file)
-
-            # 複製原檔
-            sf.write(output_path, y, sr)
-            print(f"✔ Copied: {output_path}")
-
-            # 進行資料增強
-            for aug_type in ['pitch', 'stretch', 'noise']:
-                for i in range(AUG_PER_SAMPLE):
-                    augment_and_save(y, sr, output_path, aug_type, i+1)
-
+            y, sr = librosa.load(file_path, sr=SAMPLE_RATE)
         except Exception as e:
-            print(f"[❌] {input_path}: {e}")
+            print(f"[❌] 跳過非音訊或不支援檔案：{file_path}，原因：{e}")
+            continue
+
+        base_filename = os.path.basename(file_path)
+
+        # 複製原檔（統一轉成 wav）
+        original_out = os.path.join(output_label_dir, os.path.splitext(base_filename)[0] + '.wav')
+        sf.write(original_out, y, sr)
+        print(f"✔ Copied: {original_out}")
+
+        # 進行資料增強
+        for aug_type in ['pitch', 'stretch', 'noise']:
+            for i in range(1, AUG_PER_SAMPLE + 1):
+                augment_and_save(y, sr, base_filename, output_label_dir, aug_type, i)
 
 print("🎉 全部音檔增強完成！")
